@@ -355,7 +355,7 @@ func StrError(id ErrorId) string {
 }
 
 // Get contact string.
-func GetContact() (string, *Error) {
+func GetContact() (string, error) {
 	diag := C.makeString(stringSize)
 	defer C.free(unsafe.Pointer(diag))
 
@@ -372,12 +372,12 @@ func GetContact() (string, *Error) {
 }
 
 // Get the version of the DRMAA standard.
-func GetVersion() (int, int, *Error) {
+func GetVersion() (int, int, error) {
 	return 1, 0, nil
 }
 
 // Get the DRM system.
-func (s *Session) GetDrmSystem() (string, *Error) {
+func (s *Session) GetDrmSystem() (string, error) {
 	diag := C.makeString(stringSize)
 	defer C.free(unsafe.Pointer(diag))
 
@@ -407,7 +407,7 @@ type Session struct {
 }
 
 // Creates and initializes a new DRMAA session.
-func MakeSession() (Session, *Error) {
+func MakeSession() (Session, error) {
 	var session Session
 	if err := session.Init(""); err != nil {
 		return session, err
@@ -418,7 +418,7 @@ func MakeSession() (Session, *Error) {
 // Initializes a DRMAA session. If contact string is ""
 // a new session is created otherwise an existing session
 // is connected.
-func (s *Session) Init(contactString string) *Error {
+func (s *Session) Init(contactString string) error {
 	diag := C.makeString(stringSize)
 	defer C.free(unsafe.Pointer(diag))
 	var errNumber C.int
@@ -443,7 +443,7 @@ func (s *Session) Init(contactString string) *Error {
 }
 
 // Disengages a session frmo the DRMAA library and cleans it up.
-func (s *Session) Exit() *Error {
+func (s *Session) Exit() error {
 	diag := C.makeString(stringSize)
 	defer C.free(unsafe.Pointer(diag))
 
@@ -456,7 +456,7 @@ func (s *Session) Exit() *Error {
 }
 
 // Allocates a new job template.
-func (s *Session) AllocateJobTemplate() (jt JobTemplate, err *Error) {
+func (s *Session) AllocateJobTemplate() (jt JobTemplate, err error) {
 	if s.initialized == false {
 		// error, need a connection (active session)
 		ce := makeError("No active session", NoActiveSession)
@@ -477,7 +477,7 @@ func (s *Session) AllocateJobTemplate() (jt JobTemplate, err *Error) {
 // Deletes (and frees memory) of an allocated job template.
 // Must be called in to prevent memory leaks. JobTemplates
 // are not handled in GO garbage collector.
-func (s *Session) DeleteJobTemplate(jt *JobTemplate) *Error {
+func (s *Session) DeleteJobTemplate(jt *JobTemplate) error {
 	diag := C.makeString(stringSize)
 	defer C.free(unsafe.Pointer(diag))
 
@@ -491,7 +491,7 @@ func (s *Session) DeleteJobTemplate(jt *JobTemplate) *Error {
 }
 
 // Submits a job in a (initialized) session to the DRM.
-func (s *Session) RunJob(jt *JobTemplate) (string, *Error) {
+func (s *Session) RunJob(jt *JobTemplate) (string, error) {
 	jobId := C.makeString(jobnameSize)
 	defer C.free(unsafe.Pointer(jobId))
 
@@ -508,7 +508,7 @@ func (s *Session) RunJob(jt *JobTemplate) (string, *Error) {
 }
 
 // Submits a job as an array job.
-func (s *Session) RunBulkJobs(jt *JobTemplate, start, end, incr int) ([]string, *Error) {
+func (s *Session) RunBulkJobs(jt *JobTemplate, start, end, incr int) ([]string, error) {
 	var ids *C.drmaa_job_ids_t
 	jobId := C.makeString(jobnameSize)
 	defer C.free(unsafe.Pointer(jobId))
@@ -535,7 +535,7 @@ func (s *Session) RunBulkJobs(jt *JobTemplate, start, end, incr int) ([]string, 
 
 // Controls a job, i.e. terminates, suspends, resumes a job or sets
 // it in a the hold state or release it from the hold state.
-func (s *Session) Control(jobId string, action controlType) *Error {
+func (s *Session) Control(jobId string, action controlType) error {
 	diag := C.makeString(stringSize)
 	defer C.free(unsafe.Pointer(diag))
 	var ca C.int
@@ -563,33 +563,33 @@ func (s *Session) Control(jobId string, action controlType) *Error {
 // make job control more straightforward
 
 // Simple wrapper for Control(jobId, Terminate).
-func (s *Session) TerminateJob(jobId string) *Error {
+func (s *Session) TerminateJob(jobId string) error {
 	return s.Control(jobId, Terminate)
 }
 
 // Simple wrapper for Control(jobId, Suspend).
-func (s *Session) SuspendJob(jobId string) *Error {
+func (s *Session) SuspendJob(jobId string) error {
 	return s.Control(jobId, Suspend)
 }
 
 // Simple wrapper for Control(jobId, Resume).
-func (s *Session) ResumeJob(jobId string) *Error {
+func (s *Session) ResumeJob(jobId string) error {
 	return s.Control(jobId, Resume)
 }
 
 // Simple wrapper for Control(jobId, Hold).
-func (s *Session) HoldJob(jobId string) *Error {
+func (s *Session) HoldJob(jobId string) error {
 	return s.Control(jobId, Hold)
 }
 
 // Simple wrapper for Control(jobId, Release).
-func (s *Session) ReleaseJob(jobId string) *Error {
+func (s *Session) ReleaseJob(jobId string) error {
 	return s.Control(jobId, Release)
 }
 
 // Blocks the the programm until the given jobs left the system or
 // a specific timeout is reached.
-func (s *Session) Synchronize(jobIds []string, timeout int64, dispose bool) *Error {
+func (s *Session) Synchronize(jobIds []string, timeout int64, dispose bool) error {
 	// TODO handle special string: DRMAA_ID_SESSION_ALL
 	diag := C.makeString(stringSize)
 	defer C.free(unsafe.Pointer(diag))
@@ -619,7 +619,7 @@ func (s *Session) Synchronize(jobIds []string, timeout int64, dispose bool) *Err
 
 // Blocks until the job left the DRM system or a timeout is reached and
 // returns a JobInfo structure.
-func (s *Session) Wait(jobId string, timeout int64) (jobinfo JobInfo, err *Error) {
+func (s *Session) Wait(jobId string, timeout int64) (jobinfo JobInfo, err error) {
 	diag := C.makeString(stringSize)
 	defer C.free(unsafe.Pointer(diag))
 
@@ -731,7 +731,7 @@ func (s *Session) Wait(jobId string, timeout int64) (jobinfo JobInfo, err *Error
 }
 
 // Returns the state of a job.
-func (s *Session) JobPs(jobId string) (PsType, *Error) {
+func (s *Session) JobPs(jobId string) (PsType, error) {
 	outPs := C.int(0)
 	diag := C.makeString(stringSize)
 	defer C.free(unsafe.Pointer(diag))
@@ -777,7 +777,7 @@ type JobTemplate struct {
 }
 
 // private JOB TEMPLATE helpers
-func setNameValue(jt *C.drmaa_job_template_t, name string, value string) *Error {
+func setNameValue(jt *C.drmaa_job_template_t, name string, value string) error {
 	diag := C.makeString(stringSize)
 	defer C.free(unsafe.Pointer(diag))
 
@@ -796,7 +796,7 @@ func setNameValue(jt *C.drmaa_job_template_t, name string, value string) *Error 
 	return nil
 }
 
-func getStringValue(jt *C.drmaa_job_template_t, name string) (string, *Error) {
+func getStringValue(jt *C.drmaa_job_template_t, name string) (string, error) {
 	if jt == nil {
 		ce := makeError("No job template", errorId[C.DRMAA_ERRNO_INVALID_JOB])
 		return "", &ce
@@ -825,7 +825,7 @@ func getStringValue(jt *C.drmaa_job_template_t, name string) (string, *Error) {
 // JOB TEMPLATE methods
 
 // Sets the name of the binary to start in the job template.
-func (jt *JobTemplate) SetRemoteCommand(cmd string) *Error {
+func (jt *JobTemplate) SetRemoteCommand(cmd string) error {
 	if jt.jt != nil {
 		return setNameValue(jt.jt, C.DRMAA_REMOTE_COMMAND, cmd)
 	}
@@ -834,12 +834,12 @@ func (jt *JobTemplate) SetRemoteCommand(cmd string) *Error {
 }
 
 // Returns the currently set binary.
-func (jt *JobTemplate) RemoteCommand() (string, *Error) {
+func (jt *JobTemplate) RemoteCommand() (string, error) {
 	return getStringValue(jt.jt, C.DRMAA_REMOTE_COMMAND)
 }
 
 // Sets the input path of the remote command in the job template.
-func (jt *JobTemplate) SetInputPath(path string) *Error {
+func (jt *JobTemplate) SetInputPath(path string) error {
 	if jt.jt != nil {
 		return setNameValue(jt.jt, C.DRMAA_INPUT_PATH, path)
 	}
@@ -848,11 +848,11 @@ func (jt *JobTemplate) SetInputPath(path string) *Error {
 }
 
 // Returns the set input path ot the remote command in the job template.
-func (jt *JobTemplate) InputPath() (string, *Error) {
+func (jt *JobTemplate) InputPath() (string, error) {
 	return getStringValue(jt.jt, C.DRMAA_INPUT_PATH)
 }
 
-func (jt *JobTemplate) SetOutputPath(path string) *Error {
+func (jt *JobTemplate) SetOutputPath(path string) error {
 	if jt.jt != nil {
 		return setNameValue(jt.jt, C.DRMAA_OUTPUT_PATH, path)
 	}
@@ -860,11 +860,11 @@ func (jt *JobTemplate) SetOutputPath(path string) *Error {
 	return &ce
 }
 
-func (jt *JobTemplate) OutputPath() (string, *Error) {
+func (jt *JobTemplate) OutputPath() (string, error) {
 	return getStringValue(jt.jt, C.DRMAA_OUTPUT_PATH)
 }
 
-func (jt *JobTemplate) SetErrorPath(path string) *Error {
+func (jt *JobTemplate) SetErrorPath(path string) error {
 	if jt.jt != nil {
 		return setNameValue(jt.jt, C.DRMAA_ERROR_PATH, path)
 	}
@@ -872,12 +872,12 @@ func (jt *JobTemplate) SetErrorPath(path string) *Error {
 	return &ce
 }
 
-func (jt *JobTemplate) ErrorPath() (string, *Error) {
+func (jt *JobTemplate) ErrorPath() (string, error) {
 	return getStringValue(jt.jt, C.DRMAA_ERROR_PATH)
 }
 
 // vector attributes
-func setVectorAttributes(jt *JobTemplate, name *C.char, args []string) *Error {
+func setVectorAttributes(jt *JobTemplate, name *C.char, args []string) error {
 	diag := C.makeString(stringSize)
 	defer C.free(unsafe.Pointer(diag))
 
@@ -900,7 +900,7 @@ func setVectorAttributes(jt *JobTemplate, name *C.char, args []string) *Error {
 	return nil
 }
 
-func (jt *JobTemplate) SetArgs(args []string) *Error {
+func (jt *JobTemplate) SetArgs(args []string) error {
 	if jt.jt != nil {
 		drmaa_v_argv := C.CString(C.DRMAA_V_ARGV)
 		return setVectorAttributes(jt, drmaa_v_argv, args)
@@ -912,11 +912,11 @@ func (jt *JobTemplate) SetArgs(args []string) *Error {
 }
 
 // Set single argument. Simple wrapper for SetArgs([]string{arg}).
-func (jt *JobTemplate) SetArg(arg string) *Error {
+func (jt *JobTemplate) SetArg(arg string) error {
 	return jt.SetArgs([]string{arg})
 }
 
-func (jt *JobTemplate) SetEnv(envs []string) *Error {
+func (jt *JobTemplate) SetEnv(envs []string) error {
 	if jt.jt != nil {
 		drmaa_v_env := C.CString(C.DRMAA_V_ENV)
 		return setVectorAttributes(jt, drmaa_v_env, envs)
@@ -927,7 +927,7 @@ func (jt *JobTemplate) SetEnv(envs []string) *Error {
 	return nil
 }
 
-func (jt *JobTemplate) SetEmail(emails []string) *Error {
+func (jt *JobTemplate) SetEmail(emails []string) error {
 	if jt.jt != nil {
 		drmaa_v_email := C.CString(C.DRMAA_V_EMAIL)
 		return setVectorAttributes(jt, drmaa_v_email, emails)
@@ -939,7 +939,7 @@ func (jt *JobTemplate) SetEmail(emails []string) *Error {
 }
 
 // template attributes
-func (jt *JobTemplate) SetJobSubmissionState(state SubmissionState) *Error {
+func (jt *JobTemplate) SetJobSubmissionState(state SubmissionState) error {
 	if jt.jt != nil {
 		drmaa_js_state := C.DRMAA_JS_STATE
 		if state == HoldState {
@@ -952,7 +952,7 @@ func (jt *JobTemplate) SetJobSubmissionState(state SubmissionState) *Error {
 	return &ce
 }
 
-func (jt *JobTemplate) JobSubmissionState() (SubmissionState, *Error) {
+func (jt *JobTemplate) JobSubmissionState() (SubmissionState, error) {
 	value, err := getStringValue(jt.jt, C.DRMAA_JS_STATE)
 	if err != nil {
 		return ActiveState, err
@@ -965,7 +965,7 @@ func (jt *JobTemplate) JobSubmissionState() (SubmissionState, *Error) {
 	return ActiveState, nil
 }
 
-func (jt *JobTemplate) SetWD(dir string) *Error {
+func (jt *JobTemplate) SetWD(dir string) error {
 	if jt.jt != nil {
 		drmaa_wd := C.DRMAA_WD
 		return setNameValue(jt.jt, drmaa_wd, dir)
@@ -977,13 +977,13 @@ func (jt *JobTemplate) SetWD(dir string) *Error {
 }
 
 // Gets the working directory set in the job template
-func (jt *JobTemplate) WD() (string, *Error) {
+func (jt *JobTemplate) WD() (string, error) {
 	return getStringValue(jt.jt, C.DRMAA_WD)
 }
 
 // Sets the native specification (DRM system depended job submission settings)
 // for the job.
-func (jt *JobTemplate) SetNativeSpecification(native string) *Error {
+func (jt *JobTemplate) SetNativeSpecification(native string) error {
 	if jt.jt != nil {
 		drmaa_native_specification := C.DRMAA_NATIVE_SPECIFICATION
 		return setNameValue(jt.jt, drmaa_native_specification, native)
@@ -995,11 +995,11 @@ func (jt *JobTemplate) SetNativeSpecification(native string) *Error {
 }
 
 // Gets the native specificatio set in the job template.
-func (jt *JobTemplate) NativeSpecification() (string, *Error) {
+func (jt *JobTemplate) NativeSpecification() (string, error) {
 	return getStringValue(jt.jt, C.DRMAA_NATIVE_SPECIFICATION)
 }
 
-func (jt *JobTemplate) SetBlockEmail(blockmail bool) *Error {
+func (jt *JobTemplate) SetBlockEmail(blockmail bool) error {
 	if jt.jt != nil {
 		drmaa_block_email := C.DRMAA_BLOCK_EMAIL
 		if blockmail {
@@ -1014,7 +1014,7 @@ func (jt *JobTemplate) SetBlockEmail(blockmail bool) *Error {
 	return nil
 }
 
-func (jt *JobTemplate) BlockEmail() (bool, *Error) {
+func (jt *JobTemplate) BlockEmail() (bool, error) {
 	value, err := getStringValue(jt.jt, C.DRMAA_NATIVE_SPECIFICATION)
 	if err != nil {
 		return false, err
@@ -1026,7 +1026,7 @@ func (jt *JobTemplate) BlockEmail() (bool, *Error) {
 }
 
 // Sets the earliest job start time for the job.
-func (jt *JobTemplate) SetStartTime(time time.Time) *Error {
+func (jt *JobTemplate) SetStartTime(time time.Time) error {
 	if jt.jt != nil {
 		drmaa_start_time := C.DRMAA_START_TIME
 		timeString := fmt.Sprintf("%d", time.Unix())
@@ -1039,7 +1039,7 @@ func (jt *JobTemplate) SetStartTime(time time.Time) *Error {
 }
 
 // Returns the job start time set for the job.
-func (jt *JobTemplate) StartTime() (time.Time, *Error) {
+func (jt *JobTemplate) StartTime() (time.Time, error) {
 	if value, err := getStringValue(jt.jt, C.DRMAA_START_TIME); err != nil {
 		var t time.Time
 		return t, err
@@ -1059,7 +1059,7 @@ func (jt *JobTemplate) StartTime() (time.Time, *Error) {
 }
 
 // Sets the name of the job in the job template.
-func (jt *JobTemplate) SetJobName(jobname string) *Error {
+func (jt *JobTemplate) SetJobName(jobname string) error {
 	if jt.jt != nil {
 		drmaa_job_name := C.DRMAA_JOB_NAME
 		return setNameValue(jt.jt, drmaa_job_name, jobname)
@@ -1071,12 +1071,12 @@ func (jt *JobTemplate) SetJobName(jobname string) *Error {
 }
 
 // Returns the name set in the job template.
-func (jt *JobTemplate) JobName() (string, *Error) {
+func (jt *JobTemplate) JobName() (string, error) {
 	return getStringValue(jt.jt, C.DRMAA_JOB_NAME)
 }
 
 // Sets that the error and output files have to be joined.
-func (jt *JobTemplate) SetJoinFiles(join bool) *Error {
+func (jt *JobTemplate) SetJoinFiles(join bool) error {
 	if jt.jt != nil {
 		drmaa_join_files := C.DRMAA_JOIN_FILES
 		if join {
@@ -1091,7 +1091,7 @@ func (jt *JobTemplate) SetJoinFiles(join bool) *Error {
 	return nil
 }
 
-func (jt *JobTemplate) JoinFiles() (bool, *Error) {
+func (jt *JobTemplate) JoinFiles() (bool, error) {
 	if val, err := getStringValue(jt.jt, C.DRMAA_JOB_NAME); err != nil {
 		return false, err
 	} else {
@@ -1102,7 +1102,7 @@ func (jt *JobTemplate) JoinFiles() (bool, *Error) {
 	return false, nil
 }
 
-func (jt *JobTemplate) SetTransferFiles(mode FileTransferMode) *Error {
+func (jt *JobTemplate) SetTransferFiles(mode FileTransferMode) error {
 	if jt.jt != nil {
 		var ftm string
 		if mode.InputStream {
@@ -1124,7 +1124,7 @@ func (jt *JobTemplate) SetTransferFiles(mode FileTransferMode) *Error {
 
 }
 
-func (jt *JobTemplate) TransferFiles() (FileTransferMode, *Error) {
+func (jt *JobTemplate) TransferFiles() (FileTransferMode, error) {
 	if jt.jt != nil {
 		if val, err := getStringValue(jt.jt, C.DRMAA_TRANSFER_FILES); err != nil {
 			var ftm FileTransferMode
@@ -1151,7 +1151,7 @@ func (jt *JobTemplate) TransferFiles() (FileTransferMode, *Error) {
 }
 
 // Unsupported in Grid Engine.
-func (jt *JobTemplate) SetDeadlineTime(deadline time.Duration) *Error {
+func (jt *JobTemplate) SetDeadlineTime(deadline time.Duration) error {
 	if jt.jt != nil {
 		drmaa_deadline_time := C.DRMAA_DEADLINE_TIME
 		limitString := fmt.Sprintf("%d", int64(deadline.Seconds()))
@@ -1164,7 +1164,7 @@ func (jt *JobTemplate) SetDeadlineTime(deadline time.Duration) *Error {
 }
 
 // Unsupported in Grid Engine.
-func (jt *JobTemplate) parseDuration(field string) (defaultDuration time.Duration, err *Error) {
+func (jt *JobTemplate) parseDuration(field string) (defaultDuration time.Duration, err error) {
 	if jt.jt != nil {
 		if val, err := getStringValue(jt.jt, field); err != nil {
 			return defaultDuration, err
@@ -1183,12 +1183,12 @@ func (jt *JobTemplate) parseDuration(field string) (defaultDuration time.Duratio
 }
 
 // Unsupported in Grid Engine.
-func (jt *JobTemplate) DeadlineTime() (deadlineTime time.Duration, err *Error) {
+func (jt *JobTemplate) DeadlineTime() (deadlineTime time.Duration, err error) {
 	return jt.parseDuration(C.DRMAA_DEADLINE_TIME)
 }
 
 // Sets a hard wall-clock time limit for the job.
-func (jt *JobTemplate) SetHardWallclockTimeLimit(limit time.Duration) *Error {
+func (jt *JobTemplate) SetHardWallclockTimeLimit(limit time.Duration) error {
 	if jt.jt != nil {
 		drmaa_wct_hlimit := C.DRMAA_WCT_HLIMIT
 		limitString := fmt.Sprintf("%d", int64(limit.Seconds()))
@@ -1201,12 +1201,12 @@ func (jt *JobTemplate) SetHardWallclockTimeLimit(limit time.Duration) *Error {
 }
 
 // Gets the wall-clock time set in the job template.
-func (jt *JobTemplate) HardWallclockTimeLimit() (deadlineTime time.Duration, err *Error) {
+func (jt *JobTemplate) HardWallclockTimeLimit() (deadlineTime time.Duration, err error) {
 	return jt.parseDuration(C.DRMAA_WCT_HLIMIT)
 }
 
 // Sets a soft wall-clock time limit for the job in the job template.
-func (jt *JobTemplate) SetSoftWallclockTimeLimit(limit time.Duration) *Error {
+func (jt *JobTemplate) SetSoftWallclockTimeLimit(limit time.Duration) error {
 	if jt.jt != nil {
 		drmaa_wct_slimit := C.DRMAA_WCT_SLIMIT
 		limitString := fmt.Sprintf("%d", int64(limit.Seconds()))
@@ -1220,12 +1220,12 @@ func (jt *JobTemplate) SetSoftWallclockTimeLimit(limit time.Duration) *Error {
 }
 
 // Gets a soft wall-clock time limit for the job set in the job template.
-func (jt *JobTemplate) SoftWallclockTimeLimit() (deadlineTime time.Duration, err *Error) {
+func (jt *JobTemplate) SoftWallclockTimeLimit() (deadlineTime time.Duration, err error) {
 	return jt.parseDuration(C.DRMAA_WCT_HLIMIT)
 }
 
 // Sets a hard run-duration limit for the job in the job tempplate.
-func (jt *JobTemplate) SetHardRunDurationLimit(limit time.Duration) *Error {
+func (jt *JobTemplate) SetHardRunDurationLimit(limit time.Duration) error {
 	if jt.jt != nil {
 		drmaa_duration_hlimit := C.DRMAA_DURATION_HLIMIT
 		limitString := fmt.Sprintf("%d", int64(limit.Seconds()))
@@ -1238,12 +1238,12 @@ func (jt *JobTemplate) SetHardRunDurationLimit(limit time.Duration) *Error {
 }
 
 // Gets the hard run-duration limit for the job in the job template.
-func (jt *JobTemplate) HardRunDurationLimit() (deadlineTime time.Duration, err *Error) {
+func (jt *JobTemplate) HardRunDurationLimit() (deadlineTime time.Duration, err error) {
 	return jt.parseDuration(C.DRMAA_DURATION_HLIMIT)
 }
 
 // Sets the soft run duration limit for the job in the job template.
-func (jt *JobTemplate) SetSoftRunDurationLimit(limit time.Duration) *Error {
+func (jt *JobTemplate) SetSoftRunDurationLimit(limit time.Duration) error {
 	if jt.jt != nil {
 		drmaa_duration_slimit := C.DRMAA_DURATION_SLIMIT
 		limitString := fmt.Sprintf("%d", int64(limit.Seconds()))
@@ -1256,6 +1256,6 @@ func (jt *JobTemplate) SetSoftRunDurationLimit(limit time.Duration) *Error {
 }
 
 // Gets teh soft run duration limit set in the job template.
-func (jt *JobTemplate) SoftRunDurationLimit() (deadlineTime time.Duration, err *Error) {
+func (jt *JobTemplate) SoftRunDurationLimit() (deadlineTime time.Duration, err error) {
 	return jt.parseDuration(C.DRMAA_DURATION_SLIMIT)
 }

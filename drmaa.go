@@ -628,7 +628,7 @@ func (s *Session) Wait(jobId string, timeout int64) (jobinfo JobInfo, err error)
 
 	// out
 	cstat := C.int(0)
-	var crusage *C.struct_drmaa_attr_values_t
+	var crusage *C.drmaa_attr_values_t
 
 	if errNumber := C.drmaa_wait(C.CString(jobId), job_id_out, jobnameSize, &cstat,
 		C.long(timeout), &crusage, diag, stringSize); errNumber != C.DRMAA_ERRNO_SUCCESS {
